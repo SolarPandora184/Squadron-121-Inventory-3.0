@@ -6,6 +6,7 @@
     <title>Squadron 121 Inventory System</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
     <style>
         :root {
             --cap-blue: #003366;
@@ -40,7 +41,22 @@
 
         .card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
+        }
+
+        .card-header {
+            border-radius: 10px 10px 0 0 !important;
+            font-weight: 600;
+        }
+
+        .item-card {
+            transition: all 0.3s ease;
+            border: 1px solid #e9ecef;
+        }
+
+        .item-card:hover {
+            border-color: var(--cap-light-blue);
+            box-shadow: 0 4px 20px rgba(74, 144, 226, 0.15);
         }
 
         .btn {
@@ -63,182 +79,569 @@
             border-color: #002244;
         }
 
-        .login-container {
-            max-width: 400px;
-            margin: 100px auto;
+        .btn-success {
+            background-color: var(--success-green);
+            border-color: var(--success-green);
         }
 
-        .main-selection {
-            display: none;
+        .table {
+            border-radius: 8px;
+            overflow: hidden;
         }
 
-        .section-card {
-            height: 200px;
-            cursor: pointer;
-            background: linear-gradient(135deg, var(--cap-blue), var(--cap-light-blue));
-            color: white;
-            border: none;
+        .table-striped > tbody > tr:nth-of-type(odd) > td {
+            background-color: rgba(0, 0, 0, 0.02);
         }
 
-        .section-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        .table-hover tbody tr:hover {
+            background-color: rgba(74, 144, 226, 0.1);
         }
 
-        .inventory-section {
-            display: none;
+        .badge {
+            font-size: 0.75em;
+            font-weight: 500;
+            letter-spacing: 0.5px;
         }
 
-        .form-control {
+        .form-control, .form-select {
             border-radius: 6px;
             border: 1px solid #ced4da;
             transition: all 0.3s ease;
         }
 
-        .form-control:focus {
+        .form-control:focus, .form-select:focus {
             border-color: var(--cap-light-blue);
             box-shadow: 0 0 0 0.2rem rgba(74, 144, 226, 0.25);
+        }
+
+        .alert {
+            border-radius: 8px;
+            border: none;
+            font-weight: 500;
+        }
+
+        .modal-content {
+            border-radius: 10px;
+            border: none;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-header {
+            background-color: #f8f9fa;
+            border-radius: 10px 10px 0 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .modal-title {
+            font-weight: 600;
+            color: var(--cap-blue);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .container {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .search-filters {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 0.5rem 0.75rem;
+        }
+
+        .cadet-item-card {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .cadet-item-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--cap-gray);
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
         }
     </style>
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: var(--cap-blue);">
+    <nav class="navbar navbar-dark bg-primary">
         <div class="container">
-            <a class="navbar-brand" href="#">
+            <span class="navbar-brand mb-0 h1">
                 <i class="fas fa-plane-departure me-2"></i>
-                CAP Squadron 121 Inventory
-            </a>
-            <button class="btn btn-outline-light btn-sm" onclick="logout()" id="logoutBtn" style="display: none;">
-                <i class="fas fa-sign-out-alt"></i> Logout
-            </button>
+                <span id="navTitle">Squadron 121 Inventory System</span>
+            </span>
+            <div>
+                <button class="btn btn-outline-light me-2" onclick="showHome()" id="homeBtn" style="display: none;">
+                    <i class="fas fa-home me-2"></i>Home
+                </button>
+                <button class="btn btn-outline-light me-2" onclick="checkAdminAccess()" id="adminBtn">
+                    <i class="fas fa-user-shield me-2"></i>Admin
+                </button>
+                <button class="btn btn-outline-light" onclick="showCadet()" id="cadetBtn">
+                    <i class="fas fa-clipboard-list me-2"></i>Cadet
+                </button>
+            </div>
         </div>
     </nav>
 
-    <!-- Login Screen -->
-    <div class="container" id="loginScreen">
-        <div class="login-container">
-            <div class="card shadow">
-                <div class="card-header text-center" style="background-color: var(--cap-blue); color: white;">
-                    <h4><i class="fas fa-shield-alt me-2"></i>Squadron 121 Access</h4>
+    <div class="container mt-4">
+        <!-- Alert for messages -->
+        <div id="alertContainer"></div>
+
+        <!-- Home Page -->
+        <div id="homePage">
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <div class="text-center mb-5">
+                        <h1 class="display-4 mb-4">Squadron 121 Inventory System</h1>
+                        <p class="lead">Manage and track squadron equipment, uniforms, and resources</p>
+                    </div>
+
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="card h-100 shadow">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-user-shield fa-3x text-primary mb-3"></i>
+                                    <h4 class="card-title">Admin Portal</h4>
+                                    <p class="card-text">
+                                        Manage inventory items, add new equipment, and track assignments.
+                                        Administrative access required.
+                                    </p>
+                                    <button class="btn btn-primary btn-lg" onclick="checkAdminAccess()">
+                                        <i class="fas fa-cog me-2"></i>Admin Access
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="card h-100 shadow">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-clipboard-list fa-3x text-success mb-3"></i>
+                                    <h4 class="card-title">Cadet Portal</h4>
+                                    <p class="card-text">
+                                        Browse available inventory items and submit requests for equipment,
+                                        uniforms, and insignia.
+                                    </p>
+                                    <button class="btn btn-success btn-lg" onclick="showCadet()">
+                                        <i class="fas fa-search me-2"></i>Browse Items
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
-                <div class="card-body">
-                    <form id="loginForm" onsubmit="return false;">
-                        <div class="mb-3">
-                            <label for="username" class="form-label">Username</label>
-                            <input type="text" class="form-control" id="username" required autocomplete="username">
+            </div>
+        </div>
+
+        <!-- Admin Page -->
+        <div id="adminPage" class="hidden">
+            <!-- Add Item Form -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-plus-circle me-2"></i>Add New Item
+                            </h5>
                         </div>
-                        <div class="mb-3">
-                            <label for="password" class="form-label">Password</label>
-                            <input type="password" class="form-control" id="password" required autocomplete="current-password">
+                        <div class="card-body">
+                            <form id="addItemForm" onsubmit="return false;">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="itemName" class="form-label">Item Name *</label>
+                                            <input type="text" class="form-control" id="itemName" required autocomplete="off">
+                                            <div id="nameDropdown" class="dropdown-menu" style="display: none; position: absolute; z-index: 1000;"></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="itemType" class="form-label">Item Type *</label>
+                                            <select class="form-select" id="itemType" required>
+                                                <option value="">Select Type</option>
+                                                <option value="Uniform">Uniform</option>
+                                                <option value="Insignia">Insignia</option>
+                                                <option value="Equipment">Equipment</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="size" class="form-label">Size</label>
+                                            <input type="text" class="form-control" id="size" placeholder="Optional">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="totalQuantity" class="form-label">Total Quantity *</label>
+                                            <input type="number" class="form-control" id="totalQuantity" min="1" value="1" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="lowWarning" class="form-label">Low Warning (Optional)</label>
+                                            <input type="number" class="form-control" id="lowWarning" min="0" placeholder="Alert when qty hits this number">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="itemStatus" class="form-label">Status *</label>
+                                            <select class="form-select" id="itemStatus" required>
+                                                <option value="">Select Status</option>
+                                                <option value="In Inventory">In Inventory</option>
+                                                <option value="Assigned">Assigned</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="assignedTo" class="form-label">Assigned To</label>
+                                            <input type="text" class="form-control" id="assignedTo" placeholder="Leave blank if in inventory">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="assignedCapId" class="form-label">CAP ID (if assigned)</label>
+                                            <input type="text" class="form-control" id="assignedCapId" placeholder="Required when assigning item">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="itemDescription" class="form-label">Description</label>
+                                            <textarea class="form-control" id="itemDescription" rows="1" placeholder="Optional description"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>Add Item
+                                </button>
+                            </form>
                         </div>
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-sign-in-alt me-2"></i>Login
-                        </button>
-                        <div class="mt-2 text-muted small">
-                            Demo credentials: admin / admin123
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search and Filters -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-search me-2"></i>Search & Filter Items
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="mb-2">
+                                        <label for="searchInput" class="form-label">Search Items</label>
+                                        <input type="text" class="form-control" id="searchInput" placeholder="Item name, type, or assignee">
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="mb-2">
+                                        <label for="typeFilter" class="form-label">Type</label>
+                                        <select class="form-select" id="typeFilter">
+                                            <option value="">All Types</option>
+                                            <option value="Uniform">Uniform</option>
+                                            <option value="Insignia">Insignia</option>
+                                            <option value="Equipment">Equipment</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="mb-2">
+                                        <label for="statusFilter" class="form-label">Status</label>
+                                        <select class="form-select" id="statusFilter">
+                                            <option value="">All Status</option>
+                                            <option value="In Inventory">In Inventory</option>
+                                            <option value="Assigned">Assigned</option>
+                                            <option value="Low Stock">Low Stock</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="mb-2">
+                                        <label for="sortBy" class="form-label">Sort By</label>
+                                        <select class="form-select" id="sortBy">
+                                            <option value="name">Name (A-Z)</option>
+                                            <option value="name-desc">Name (Z-A)</option>
+                                            <option value="type">Type</option>
+                                            <option value="quantity">Available Quantity</option>
+                                            <option value="added">Recently Added</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <div class="mb-2">
+                                        <button class="btn btn-outline-secondary" onclick="clearFilters()">
+                                            <i class="fas fa-times me-1"></i>Clear
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inventory Display -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-boxes me-2"></i>Inventory Items
+                                <span id="itemCount" class="badge bg-secondary ms-2">0</span>
+                            </h5>
+                            <div>
+                                <button class="btn btn-sm btn-outline-primary me-2" onclick="refreshInventory()">
+                                    <i class="fas fa-sync-alt me-1"></i>Refresh
+                                </button>
+                                <button class="btn btn-sm btn-success" onclick="exportInventory()">
+                                    <i class="fas fa-download me-1"></i>Export
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="inventoryContainer">
+                                <div class="text-center py-4">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <p class="mt-2">Loading inventory...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cadet Page -->
+        <div id="cadetPage" class="hidden">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="text-center mb-4">
+                        <h2>Available Inventory Items</h2>
+                        <p class="text-muted">Browse and request squadron equipment, uniforms, and insignia</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cadet Search and Filters -->
+            <div class="search-filters">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="cadetSearch" class="form-label">Search Items</label>
+                            <input type="text" class="form-control" id="cadetSearch" placeholder="Search by name or type">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label for="cadetTypeFilter" class="form-label">Category</label>
+                            <select class="form-select" id="cadetTypeFilter">
+                                <option value="">All Categories</option>
+                                <option value="Uniform">Uniforms</option>
+                                <option value="Insignia">Insignia</option>
+                                <option value="Equipment">Equipment</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label for="cadetAvailabilityFilter" class="form-label">Availability</label>
+                            <select class="form-select" id="cadetAvailabilityFilter">
+                                <option value="">All Items</option>
+                                <option value="available">Available Only</option>
+                                <option value="low">Low Stock Items</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <div class="mb-3">
+                            <button class="btn btn-outline-secondary" onclick="clearCadetFilters()">
+                                <i class="fas fa-times me-1"></i>Clear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cadet Inventory Display -->
+            <div id="cadetInventoryContainer">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading available items...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Password Modal -->
+    <div class="modal fade" id="adminPasswordModal" tabindex="-1" aria-labelledby="adminPasswordModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="adminPasswordModalLabel">
+                        <i class="fas fa-lock me-2"></i>Admin Authentication
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-3">Enter your admin password to access the inventory management system.</p>
+                    <form id="adminPasswordForm" onsubmit="return false;">
+                        <div class="mb-3">
+                            <label for="adminPassword" class="form-label">Admin Password</label>
+                            <input type="password" class="form-control" id="adminPassword" required>
+                        </div>
+                        <div id="passwordError" class="alert alert-danger" style="display: none;"></div>
+                        <div class="text-end">
+                            <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-sign-in-alt me-2"></i>Access Admin
+                            </button>
                         </div>
                     </form>
-                    <div id="loginError" class="alert alert-danger mt-3" style="display: none;"></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Main Selection Screen -->
-    <div class="container mt-4 main-selection" id="mainSelection">
-        <div class="row">
-            <div class="col-12 text-center mb-4">
-                <h2>Squadron 121 Management System</h2>
-                <p class="text-muted">Select a section to manage</p>
-            </div>
-        </div>
-        <div class="row g-4">
-            <div class="col-md-6">
-                <div class="card section-card" onclick="showInventory()">
-                    <div class="card-body d-flex flex-column justify-content-center align-items-center">
-                        <i class="fas fa-boxes fa-3x mb-3"></i>
-                        <h4>Inventory Management</h4>
-                        <p class="text-center">Manage squadron equipment and supplies</p>
-                    </div>
+    <!-- Item Details Modal -->
+    <div class="modal fade" id="itemDetailsModal" tabindex="-1" aria-labelledby="itemDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="itemDetailsModalLabel">Item Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card section-card" onclick="showReports()">
-                    <div class="card-body d-flex flex-column justify-content-center align-items-center">
-                        <i class="fas fa-chart-bar fa-3x mb-3"></i>
-                        <h4>Reports & Analytics</h4>
-                        <p class="text-center">View inventory reports and statistics</p>
-                    </div>
+                <div class="modal-body" id="itemDetailsContent">
+                    <!-- Content will be populated by JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="editItemBtn" onclick="editItem()">
+                        <i class="fas fa-edit me-2"></i>Edit Item
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Inventory Section -->
-    <div class="container-fluid mt-4 inventory-section" id="inventorySection">
-        <div class="row">
-            <div class="col-12">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2><i class="fas fa-boxes me-2"></i>Inventory Management</h2>
-                    <div>
-                        <button class="btn btn-secondary me-2" onclick="showMainSelection()">
-                            <i class="fas fa-arrow-left"></i> Back to Menu
-                        </button>
-                        <button class="btn btn-success" onclick="showAddItemModal()">
-                            <i class="fas fa-plus"></i> Add Item
-                        </button>
-                    </div>
+    <!-- Checkout Modal -->
+    <div class="modal fade" id="checkoutModal" tabindex="-1" aria-labelledby="checkoutModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="checkoutModalLabel">
+                        <i class="fas fa-user-plus me-2"></i>Checkout Item
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-            </div>
-        </div>
-        
-        <!-- Search and Filter Controls -->
-        <div class="row mb-4">
-            <div class="col-md-4">
-                <input type="text" class="form-control" id="searchInput" placeholder="Search items..." onkeyup="filterItems()">
-            </div>
-            <div class="col-md-3">
-                <select class="form-select" id="typeFilter" onchange="filterItems()">
-                    <option value="">All Types</option>
-                    <option value="Equipment">Equipment</option>
-                    <option value="Uniform">Uniform</option>
-                    <option value="Supply">Supply</option>
-                    <option value="Electronics">Electronics</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <select class="form-select" id="statusFilter" onchange="filterItems()">
-                    <option value="">All Status</option>
-                    <option value="Available">Available</option>
-                    <option value="Checked Out">Checked Out</option>
-                    <option value="Maintenance">Maintenance</option>
-                    <option value="Lost">Lost</option>
-                </select>
-            </div>
-        </div>
-
-        <!-- Inventory Items Display -->
-        <div class="row" id="inventoryItems">
-            <div class="col-12 text-center">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
+                <div class="modal-body">
+                    <form id="checkoutForm" onsubmit="return false;">
+                        <div class="mb-3">
+                            <label for="checkoutCadetName" class="form-label">Cadet Name *</label>
+                            <input type="text" class="form-control" id="checkoutCadetName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="checkoutCadetCapId" class="form-label">CAP ID *</label>
+                            <input type="text" class="form-control" id="checkoutCadetCapId" required placeholder="e.g., 123456">
+                        </div>
+                        <div class="mb-3">
+                            <label for="checkoutQuantity" class="form-label">Quantity *</label>
+                            <input type="number" class="form-control" id="checkoutQuantity" min="1" value="1" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="checkoutNotes" class="form-label">Notes (Optional)</label>
+                            <textarea class="form-control" id="checkoutNotes" rows="2" placeholder="Additional notes about this checkout"></textarea>
+                        </div>
+                        <div id="checkoutError" class="alert alert-danger" style="display: none;"></div>
+                        <div class="text-end">
+                            <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-check me-2"></i>Checkout
+                            </button>
+                        </div>
+                    </form>
                 </div>
-                <p class="mt-2">Loading inventory items...</p>
             </div>
         </div>
     </div>
 
-    <!-- Bootstrap JS -->
+    <!-- Check-in Modal -->
+    <div class="modal fade" id="checkinModal" tabindex="-1" aria-labelledby="checkinModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="checkinModalLabel">
+                        <i class="fas fa-undo me-2"></i>Check-in Item
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Select which checkout record(s) to return:</p>
+                    <div id="checkinOptions">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                    <div id="checkinError" class="alert alert-danger mt-3" style="display: none;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-warning" onclick="processCheckin()">
+                        <i class="fas fa-undo me-2"></i>Check-in Selected
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap and Firebase Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Firebase Scripts -->
+    <!-- Firebase -->
     <script type="module">
-        // Import Firebase modules
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getDatabase, ref, get, child } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+        import { getDatabase, ref, set, get, child, push, update, remove, onValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
-        // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyDCo2OweTTS-g60MVwL9N-VUCyCyctZavc",
             authDomain: "squadron-72.firebaseapp.com",
@@ -250,7 +653,6 @@
             measurementId: "G-0D77CRVR83"
         };
 
-        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const database = getDatabase(app);
 
@@ -260,164 +662,820 @@
         window.firebaseRef = ref;
         window.firebaseGet = get;
         window.firebaseChild = child;
+        window.firebaseSet = set;
+        window.firebasePush = push;
+        window.firebaseUpdate = update;
+        window.firebaseRemove = remove;
+        window.firebaseOnValue = onValue;
 
         console.log('Firebase initialized successfully');
     </script>
 
     <script>
         // Global variables
-        let currentUser = null;
-        let inventoryItems = [];
+        let currentInventory = [];
+        let filteredInventory = [];
+        let currentItemForModal = null;
+        let isAdminAuthenticated = false;
 
-        // Authentication function
-        function authenticate(username, password) {
-            // Simple authentication - replace with actual authentication system
-            const validCredentials = [
-                { username: 'admin', password: 'admin123' },
-                { username: 'squadron121', password: 'cap2025' },
-                { username: 'officer', password: 'officer123' }
-            ];
-
-            return validCredentials.some(cred => 
-                cred.username === username && cred.password === password
-            );
-        }
-
-        // Login form handler with enhanced error handling
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            // Prevent default form submission immediately
-            e.preventDefault();
-            e.stopPropagation();
-            
-            console.log('Login form submitted');
-            
-            // Get form elements
-            const usernameField = document.getElementById('username');
-            const passwordField = document.getElementById('password');
-            
-            if (!usernameField || !passwordField) {
-                console.error('Login form fields not found');
-                showError('Login form error - please refresh the page');
-                return false;
-            }
-            
-            const username = usernameField.value.trim();
-            const password = passwordField.value;
-            
-            console.log('Login attempt for username:', username);
-            
-            // Validate input
-            if (!username || !password) {
-                showError('Please enter both username and password');
-                return false;
-            }
-            
-            try {
-                // Clear any previous errors
-                document.getElementById('loginError').style.display = 'none';
-                
-                // Perform authentication
-                if (authenticate(username, password)) {
-                    console.log('Authentication successful for:', username);
-                    currentUser = username;
-                    
-                    // Clear form
-                    usernameField.value = '';
-                    passwordField.value = '';
-                    
-                    // Show main interface
-                    showMainSelection();
-                    document.getElementById('logoutBtn').style.display = 'block';
-                } else {
-                    console.log('Authentication failed for:', username);
-                    showError('Invalid username or password. Try: admin/admin123');
-                    passwordField.value = ''; // Clear password on failed attempt
-                }
-            } catch (error) {
-                console.error('Login error:', error);
-                showError('Login system error: ' + error.message);
-            }
-            
-            return false; // Ensure form doesn't submit
-        });
-
-        function showError(message) {
-            const errorDiv = document.getElementById('loginError');
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
-        }
-
-        function showMainSelection() {
-            document.getElementById('loginScreen').style.display = 'none';
-            document.getElementById('mainSelection').style.display = 'block';
-            document.getElementById('inventorySection').style.display = 'none';
-        }
-
-        function showInventory() {
-            document.getElementById('loginScreen').style.display = 'none';
-            document.getElementById('mainSelection').style.display = 'none';
-            document.getElementById('inventorySection').style.display = 'block';
-            loadInventoryItems();
-        }
-
-        function showReports() {
-            alert('Reports section coming soon!');
-        }
-
-        function logout() {
-            currentUser = null;
-            document.getElementById('loginScreen').style.display = 'block';
-            document.getElementById('mainSelection').style.display = 'none';
-            document.getElementById('inventorySection').style.display = 'none';
-            document.getElementById('logoutBtn').style.display = 'none';
-            document.getElementById('username').value = '';
-            document.getElementById('password').value = '';
-            document.getElementById('loginError').style.display = 'none';
-        }
-
-        async function loadInventoryItems() {
-            try {
-                console.log('Loading inventory items...');
-                // This is where Firebase integration would load real data
-                // For now, show a placeholder
-                document.getElementById('inventoryItems').innerHTML = `
-                    <div class="col-12 text-center">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5>Inventory Items</h5>
-                                <p>Connected to Firebase database. No items found or database is empty.</p>
-                                <button class="btn btn-primary" onclick="showAddItemModal()">Add First Item</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            } catch (error) {
-                console.error('Error loading inventory:', error);
-                document.getElementById('inventoryItems').innerHTML = `
-                    <div class="col-12">
-                        <div class="alert alert-danger">
-                            Error loading inventory: ${error.message}
-                        </div>
-                    </div>
-                `;
-            }
-        }
-
-        function showAddItemModal() {
-            alert('Add item functionality coming soon!');
-        }
-
-        function filterItems() {
-            // Placeholder for filtering functionality
-            console.log('Filter function called');
-        }
+        // Common CAP item names for autocomplete
+        const commonItems = [
+            "Battle Dress Uniform (BDU) Shirt",
+            "Battle Dress Uniform (BDU) Pants", 
+            "Service Dress Blue Coat",
+            "Service Dress Blue Pants",
+            "Flight Cap",
+            "Garrison Cap",
+            "Flight Boots",
+            "Oxford Shoes",
+            "Belt - Black Leather",
+            "Belt - Blue Web",
+            "Cadet Officer Insignia",
+            "Cadet NCO Insignia", 
+            "Squadron Patch",
+            "Wing Patch",
+            "CAP Patch",
+            "Flight Suit",
+            "Reflective Belt",
+            "Flashlight",
+            "Compass",
+            "First Aid Kit",
+            "Radio",
+            "Name Tag",
+            "Ribbons",
+            "Rank Insignia"
+        ];
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Squadron 121 Inventory System loaded');
-            // Show login screen by default
-            logout();
+            setupEventListeners();
+            setupAutocomplete();
+            loadInventory();
         });
+
+        function setupEventListeners() {
+            // Admin password form with enhanced error handling
+            document.getElementById('adminPasswordForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const password = document.getElementById('adminPassword').value;
+                console.log('Admin login attempt');
+                
+                if (authenticateAdmin(password)) {
+                    console.log('Admin authentication successful');
+                    isAdminAuthenticated = true;
+                    showAdmin();
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('adminPasswordModal'));
+                    modal.hide();
+                    document.getElementById('adminPassword').value = '';
+                    document.getElementById('passwordError').style.display = 'none';
+                } else {
+                    console.log('Admin authentication failed');
+                    showPasswordError('Invalid admin password');
+                }
+                
+                return false;
+            });
+
+            // Add item form
+            document.getElementById('addItemForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                addItem();
+            });
+
+            // Checkout form
+            document.getElementById('checkoutForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                processCheckout();
+            });
+
+            // Search and filter inputs
+            document.getElementById('searchInput').addEventListener('input', filterInventory);
+            document.getElementById('typeFilter').addEventListener('change', filterInventory);
+            document.getElementById('statusFilter').addEventListener('change', filterInventory);
+            document.getElementById('sortBy').addEventListener('change', filterInventory);
+
+            // Cadet search and filters
+            document.getElementById('cadetSearch').addEventListener('input', filterCadetInventory);
+            document.getElementById('cadetTypeFilter').addEventListener('change', filterCadetInventory);
+            document.getElementById('cadetAvailabilityFilter').addEventListener('change', filterCadetInventory);
+        }
+
+        function authenticateAdmin(password) {
+            // Replace with your actual admin password
+            const adminPasswords = ['admin123', 'squadron121', 'cap2025'];
+            return adminPasswords.includes(password);
+        }
+
+        function showPasswordError(message) {
+            const errorDiv = document.getElementById('passwordError');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function checkAdminAccess() {
+            if (isAdminAuthenticated) {
+                showAdmin();
+            } else {
+                const modal = new bootstrap.Modal(document.getElementById('adminPasswordModal'));
+                modal.show();
+            }
+        }
+
+        function showHome() {
+            document.getElementById('homePage').classList.remove('hidden');
+            document.getElementById('adminPage').classList.add('hidden');
+            document.getElementById('cadetPage').classList.add('hidden');
+            document.getElementById('homeBtn').style.display = 'none';
+            document.getElementById('navTitle').textContent = 'Squadron 121 Inventory System';
+        }
+
+        function showAdmin() {
+            document.getElementById('homePage').classList.add('hidden');
+            document.getElementById('adminPage').classList.remove('hidden');
+            document.getElementById('cadetPage').classList.add('hidden');
+            document.getElementById('homeBtn').style.display = 'inline-block';
+            document.getElementById('navTitle').textContent = 'Admin Portal';
+            loadInventory();
+        }
+
+        function showCadet() {
+            document.getElementById('homePage').classList.add('hidden');
+            document.getElementById('adminPage').classList.add('hidden');
+            document.getElementById('cadetPage').classList.remove('hidden');
+            document.getElementById('homeBtn').style.display = 'inline-block';
+            document.getElementById('navTitle').textContent = 'Cadet Portal';
+            loadCadetInventory();
+        }
+
+        // Firebase integration functions
+        async function loadInventory() {
+            try {
+                const dbRef = window.firebaseRef(window.firebaseDatabase);
+                const snapshot = await window.firebaseGet(window.firebaseChild(dbRef, 'inventory'));
+                
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    currentInventory = Object.values(data);
+                } else {
+                    currentInventory = [];
+                }
+                
+                console.log('Loaded inventory:', currentInventory.length, 'items');
+                filterInventory();
+                
+            } catch (error) {
+                console.error('Error loading inventory:', error);
+                showAlert('Error loading inventory: ' + error.message, 'danger');
+                currentInventory = [];
+                displayInventory([]);
+            }
+        }
+
+        async function addItem() {
+            try {
+                const itemData = {
+                    name: document.getElementById('itemName').value.trim(),
+                    type: document.getElementById('itemType').value,
+                    size: document.getElementById('size').value.trim() || null,
+                    totalQuantity: parseInt(document.getElementById('totalQuantity').value),
+                    availableQuantity: 0,
+                    checkedOutQuantity: 0,
+                    lowWarning: parseInt(document.getElementById('lowWarning').value) || null,
+                    status: document.getElementById('itemStatus').value,
+                    assignedTo: document.getElementById('assignedTo').value.trim() || null,
+                    assignedCapId: document.getElementById('assignedCapId').value.trim() || null,
+                    description: document.getElementById('itemDescription').value.trim() || null,
+                    checkoutHistory: [],
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+
+                // Calculate quantities based on status
+                if (itemData.status === 'In Inventory') {
+                    itemData.availableQuantity = itemData.totalQuantity;
+                } else if (itemData.status === 'Assigned' && itemData.assignedTo && itemData.assignedCapId) {
+                    itemData.availableQuantity = 0;
+                    itemData.checkedOutQuantity = itemData.totalQuantity;
+                    
+                    // Add to checkout history
+                    itemData.checkoutHistory = [{
+                        cadetName: itemData.assignedTo,
+                        cadetCapId: itemData.assignedCapId,
+                        quantity: itemData.totalQuantity,
+                        checkoutDate: new Date().toISOString(),
+                        notes: 'Initial assignment'
+                    }];
+                }
+
+                // Validation
+                if (!itemData.name || !itemData.type || !itemData.status) {
+                    showAlert('Please fill in all required fields', 'warning');
+                    return;
+                }
+
+                if (itemData.status === 'Assigned' && (!itemData.assignedTo || !itemData.assignedCapId)) {
+                    showAlert('When status is "Assigned", both "Assigned To" and "CAP ID" are required', 'warning');
+                    return;
+                }
+
+                // Save to Firebase
+                const itemsRef = window.firebaseRef(window.firebaseDatabase, 'inventory');
+                const newItemRef = window.firebasePush(itemsRef);
+                itemData.id = newItemRef.key;
+                
+                await window.firebaseSet(newItemRef, itemData);
+                
+                showAlert(`Item "${itemData.name}" added successfully!`, 'success');
+                document.getElementById('addItemForm').reset();
+                document.getElementById('totalQuantity').value = '1'; // Reset to default
+                loadInventory();
+                
+            } catch (error) {
+                console.error('Error adding item:', error);
+                showAlert('Error adding item: ' + error.message, 'danger');
+            }
+        }
+
+        async function processCheckout() {
+            if (!currentItemForModal) return;
+
+            try {
+                const cadetName = document.getElementById('checkoutCadetName').value.trim();
+                const cadetCapId = document.getElementById('checkoutCadetCapId').value.trim();
+                const quantity = parseInt(document.getElementById('checkoutQuantity').value);
+                const notes = document.getElementById('checkoutNotes').value.trim();
+
+                if (!cadetName || !cadetCapId || !quantity) {
+                    document.getElementById('checkoutError').textContent = 'Please fill in all required fields';
+                    document.getElementById('checkoutError').style.display = 'block';
+                    return;
+                }
+
+                if (quantity > currentItemForModal.availableQuantity) {
+                    document.getElementById('checkoutError').textContent = `Only ${currentItemForModal.availableQuantity} items available`;
+                    document.getElementById('checkoutError').style.display = 'block';
+                    return;
+                }
+
+                // Update item quantities and add checkout record
+                const updatedItem = {
+                    ...currentItemForModal,
+                    availableQuantity: currentItemForModal.availableQuantity - quantity,
+                    checkedOutQuantity: currentItemForModal.checkedOutQuantity + quantity,
+                    updatedAt: new Date().toISOString()
+                };
+
+                // Add to checkout history
+                const checkoutRecord = {
+                    cadetName,
+                    cadetCapId,
+                    quantity,
+                    checkoutDate: new Date().toISOString(),
+                    notes: notes || null
+                };
+
+                if (!updatedItem.checkoutHistory) {
+                    updatedItem.checkoutHistory = [];
+                }
+                updatedItem.checkoutHistory.push(checkoutRecord);
+
+                // Update in Firebase
+                const itemRef = window.firebaseRef(window.firebaseDatabase, `inventory/${currentItemForModal.id}`);
+                await window.firebaseUpdate(itemRef, updatedItem);
+
+                showAlert(`Successfully checked out ${quantity} ${currentItemForModal.name} to ${cadetName}`, 'success');
+                
+                const modal = bootstrap.Modal.getInstance(document.getElementById('checkoutModal'));
+                modal.hide();
+                
+                document.getElementById('checkoutForm').reset();
+                document.getElementById('checkoutQuantity').value = '1';
+                document.getElementById('checkoutError').style.display = 'none';
+                
+                loadInventory();
+
+            } catch (error) {
+                console.error('Error processing checkout:', error);
+                document.getElementById('checkoutError').textContent = 'Error processing checkout: ' + error.message;
+                document.getElementById('checkoutError').style.display = 'block';
+            }
+        }
+
+        function filterInventory() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const typeFilter = document.getElementById('typeFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            const sortBy = document.getElementById('sortBy').value;
+
+            filteredInventory = currentInventory.filter(item => {
+                const matchesSearch = !searchTerm || 
+                    item.name.toLowerCase().includes(searchTerm) ||
+                    item.type.toLowerCase().includes(searchTerm) ||
+                    (item.assignedTo && item.assignedTo.toLowerCase().includes(searchTerm));
+
+                const matchesType = !typeFilter || item.type === typeFilter;
+
+                let matchesStatus = true;
+                if (statusFilter === 'In Inventory') {
+                    matchesStatus = item.availableQuantity > 0;
+                } else if (statusFilter === 'Assigned') {
+                    matchesStatus = item.checkedOutQuantity > 0;
+                } else if (statusFilter === 'Low Stock') {
+                    matchesStatus = item.lowWarning && item.availableQuantity <= item.lowWarning;
+                }
+
+                return matchesSearch && matchesType && matchesStatus;
+            });
+
+            // Sort the filtered results
+            filteredInventory.sort((a, b) => {
+                switch (sortBy) {
+                    case 'name-desc':
+                        return b.name.localeCompare(a.name);
+                    case 'type':
+                        return a.type.localeCompare(b.type);
+                    case 'quantity':
+                        return b.availableQuantity - a.availableQuantity;
+                    case 'added':
+                        return new Date(b.createdAt) - new Date(a.createdAt);
+                    default: // 'name'
+                        return a.name.localeCompare(b.name);
+                }
+            });
+
+            displayInventory(filteredInventory);
+        }
+
+        function displayInventory(items) {
+            const container = document.getElementById('inventoryContainer');
+            const itemCount = document.getElementById('itemCount');
+            
+            itemCount.textContent = items.length;
+
+            if (items.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-box-open"></i>
+                        <h4>No Items Found</h4>
+                        <p>No inventory items match your current filters.<br>Try adjusting your search criteria or add some items to get started.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const itemsHtml = items.map(item => {
+                const isLowStock = item.lowWarning && item.availableQuantity <= item.lowWarning;
+                const statusBadge = getStatusBadge(item, isLowStock);
+                
+                return `
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="card item-card h-100">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">${item.name}</h6>
+                                ${statusBadge}
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-2">
+                                    <div class="col">
+                                        <small class="text-muted">Type:</small><br>
+                                        <strong>${item.type}</strong>
+                                    </div>
+                                    ${item.size ? `
+                                    <div class="col">
+                                        <small class="text-muted">Size:</small><br>
+                                        <strong>${item.size}</strong>
+                                    </div>
+                                    ` : ''}
+                                </div>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-4">
+                                        <small class="text-muted">Available:</small><br>
+                                        <strong class="${item.availableQuantity === 0 ? 'text-danger' : ''}">${item.availableQuantity}</strong>
+                                    </div>
+                                    <div class="col-4">
+                                        <small class="text-muted">Checked Out:</small><br>
+                                        <strong>${item.checkedOutQuantity}</strong>
+                                    </div>
+                                    <div class="col-4">
+                                        <small class="text-muted">Total:</small><br>
+                                        <strong>${item.totalQuantity}</strong>
+                                    </div>
+                                </div>
+
+                                ${item.checkoutHistory && item.checkoutHistory.length > 0 ? `
+                                <div class="mb-3">
+                                    <small class="text-muted">Recent Checkouts:</small>
+                                    <div class="mt-1">
+                                        ${item.checkoutHistory.slice(-2).map(checkout => `
+                                            <small class="d-block">• ${checkout.cadetName} (${checkout.quantity})</small>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                                ` : ''}
+                                
+                                <div class="d-flex justify-content-between">
+                                    <button class="btn btn-sm btn-outline-primary" onclick="showItemDetails('${item.id}')">
+                                        <i class="fas fa-info-circle me-1"></i>Details
+                                    </button>
+                                    ${item.availableQuantity > 0 ? `
+                                    <button class="btn btn-sm btn-success" onclick="showCheckoutModal('${item.id}')">
+                                        <i class="fas fa-user-plus me-1"></i>Checkout
+                                    </button>
+                                    ` : ''}
+                                    ${item.checkedOutQuantity > 0 ? `
+                                    <button class="btn btn-sm btn-warning" onclick="showCheckinModal('${item.id}')">
+                                        <i class="fas fa-undo me-1"></i>Check-in
+                                    </button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = `<div class="row">${itemsHtml}</div>`;
+        }
+
+        function getStatusBadge(item, isLowStock) {
+            if (isLowStock) {
+                return '<span class="badge bg-warning status-badge">Low Stock</span>';
+            } else if (item.availableQuantity === 0) {
+                return '<span class="badge bg-danger status-badge">Out of Stock</span>';
+            } else if (item.checkedOutQuantity > 0 && item.availableQuantity > 0) {
+                return '<span class="badge bg-info status-badge">Partially Assigned</span>';
+            } else if (item.checkedOutQuantity > 0) {
+                return '<span class="badge bg-secondary status-badge">Fully Assigned</span>';
+            } else {
+                return '<span class="badge bg-success status-badge">Available</span>';
+            }
+        }
+
+        function showCheckoutModal(itemId) {
+            const item = currentInventory.find(i => i.id === itemId);
+            if (!item) return;
+
+            currentItemForModal = item;
+            document.getElementById('checkoutQuantity').max = item.availableQuantity;
+            document.getElementById('checkoutQuantity').value = Math.min(1, item.availableQuantity);
+            
+            const modal = new bootstrap.Modal(document.getElementById('checkoutModal'));
+            modal.show();
+        }
+
+        function showCheckinModal(itemId) {
+            const item = currentInventory.find(i => i.id === itemId);
+            if (!item || !item.checkoutHistory) return;
+
+            currentItemForModal = item;
+            
+            const optionsHtml = item.checkoutHistory.map((checkout, index) => `
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="${index}" id="checkout${index}">
+                    <label class="form-check-label" for="checkout${index}">
+                        ${checkout.cadetName} (CAP ID: ${checkout.cadetCapId}) - Qty: ${checkout.quantity}
+                        <br><small class="text-muted">Checked out: ${new Date(checkout.checkoutDate).toLocaleDateString()}</small>
+                        ${checkout.notes ? `<br><small class="text-muted">Notes: ${checkout.notes}</small>` : ''}
+                    </label>
+                </div>
+            `).join('');
+            
+            document.getElementById('checkinOptions').innerHTML = optionsHtml;
+            
+            const modal = new bootstrap.Modal(document.getElementById('checkinModal'));
+            modal.show();
+        }
+
+        async function processCheckin() {
+            if (!currentItemForModal) return;
+
+            try {
+                const selectedCheckboxes = document.querySelectorAll('#checkinOptions input:checked');
+                if (selectedCheckboxes.length === 0) {
+                    document.getElementById('checkinError').textContent = 'Please select at least one checkout record to return';
+                    document.getElementById('checkinError').style.display = 'block';
+                    return;
+                }
+
+                let totalReturnedQuantity = 0;
+                const updatedHistory = [...currentItemForModal.checkoutHistory];
+
+                // Process returns in reverse order to maintain array integrity
+                Array.from(selectedCheckboxes)
+                    .map(cb => parseInt(cb.value))
+                    .sort((a, b) => b - a)
+                    .forEach(index => {
+                        totalReturnedQuantity += updatedHistory[index].quantity;
+                        updatedHistory.splice(index, 1);
+                    });
+
+                // Update item quantities
+                const updatedItem = {
+                    ...currentItemForModal,
+                    availableQuantity: currentItemForModal.availableQuantity + totalReturnedQuantity,
+                    checkedOutQuantity: currentItemForModal.checkedOutQuantity - totalReturnedQuantity,
+                    checkoutHistory: updatedHistory,
+                    updatedAt: new Date().toISOString()
+                };
+
+                // Update in Firebase
+                const itemRef = window.firebaseRef(window.firebaseDatabase, `inventory/${currentItemForModal.id}`);
+                await window.firebaseUpdate(itemRef, updatedItem);
+
+                showAlert(`Successfully returned ${totalReturnedQuantity} ${currentItemForModal.name}`, 'success');
+                
+                const modal = bootstrap.Modal.getInstance(document.getElementById('checkinModal'));
+                modal.hide();
+                
+                document.getElementById('checkinError').style.display = 'none';
+                loadInventory();
+
+            } catch (error) {
+                console.error('Error processing check-in:', error);
+                document.getElementById('checkinError').textContent = 'Error processing check-in: ' + error.message;
+                document.getElementById('checkinError').style.display = 'block';
+            }
+        }
+
+        function showItemDetails(itemId) {
+            const item = currentInventory.find(i => i.id === itemId);
+            if (!item) return;
+
+            currentItemForModal = item;
+            
+            const content = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Basic Information</h6>
+                        <table class="table table-sm">
+                            <tr><td><strong>Name:</strong></td><td>${item.name}</td></tr>
+                            <tr><td><strong>Type:</strong></td><td>${item.type}</td></tr>
+                            ${item.size ? `<tr><td><strong>Size:</strong></td><td>${item.size}</td></tr>` : ''}
+                            ${item.description ? `<tr><td><strong>Description:</strong></td><td>${item.description}</td></tr>` : ''}
+                        </table>
+                        
+                        <h6>Quantities</h6>
+                        <table class="table table-sm">
+                            <tr><td><strong>Total:</strong></td><td>${item.totalQuantity}</td></tr>
+                            <tr><td><strong>Available:</strong></td><td>${item.availableQuantity}</td></tr>
+                            <tr><td><strong>Checked Out:</strong></td><td>${item.checkedOutQuantity}</td></tr>
+                            ${item.lowWarning ? `<tr><td><strong>Low Warning:</strong></td><td>${item.lowWarning}</td></tr>` : ''}
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Checkout History</h6>
+                        ${item.checkoutHistory && item.checkoutHistory.length > 0 ? `
+                            <div style="max-height: 300px; overflow-y: auto;">
+                                ${item.checkoutHistory.map(checkout => `
+                                    <div class="card mb-2">
+                                        <div class="card-body p-2">
+                                            <strong>${checkout.cadetName}</strong> (${checkout.cadetCapId})<br>
+                                            <small>Quantity: ${checkout.quantity}</small><br>
+                                            <small>Date: ${new Date(checkout.checkoutDate).toLocaleDateString()}</small>
+                                            ${checkout.notes ? `<br><small>Notes: ${checkout.notes}</small>` : ''}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : '<p class="text-muted">No checkout history</p>'}
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('itemDetailsContent').innerHTML = content;
+            const modal = new bootstrap.Modal(document.getElementById('itemDetailsModal'));
+            modal.show();
+        }
+
+        function loadCadetInventory() {
+            // For cadet view, load only available items
+            loadInventory().then(() => {
+                filterCadetInventory();
+            });
+        }
+
+        function filterCadetInventory() {
+            const searchTerm = document.getElementById('cadetSearch').value.toLowerCase();
+            const typeFilter = document.getElementById('cadetTypeFilter').value;
+            const availabilityFilter = document.getElementById('cadetAvailabilityFilter').value;
+
+            let filtered = currentInventory.filter(item => {
+                const matchesSearch = !searchTerm || 
+                    item.name.toLowerCase().includes(searchTerm) ||
+                    item.type.toLowerCase().includes(searchTerm);
+
+                const matchesType = !typeFilter || item.type === typeFilter;
+
+                let matchesAvailability = true;
+                if (availabilityFilter === 'available') {
+                    matchesAvailability = item.availableQuantity > 0;
+                } else if (availabilityFilter === 'low') {
+                    matchesAvailability = item.lowWarning && item.availableQuantity <= item.lowWarning;
+                }
+
+                return matchesSearch && matchesType && matchesAvailability;
+            });
+
+            displayCadetInventory(filtered);
+        }
+
+        function displayCadetInventory(items) {
+            const container = document.getElementById('cadetInventoryContainer');
+
+            if (items.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-search"></i>
+                        <h4>No Items Found</h4>
+                        <p>No items match your search criteria.<br>Try adjusting your filters.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const itemsHtml = items.map(item => {
+                const isLowStock = item.lowWarning && item.availableQuantity <= item.lowWarning;
+                const isAvailable = item.availableQuantity > 0;
+                
+                return `
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="card cadet-item-card h-100 ${!isAvailable ? 'text-muted' : ''}">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">${item.name}</h6>
+                                ${getStatusBadge(item, isLowStock)}
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-2">
+                                    <div class="col">
+                                        <small class="text-muted">Type:</small><br>
+                                        <strong>${item.type}</strong>
+                                    </div>
+                                    ${item.size ? `
+                                    <div class="col">
+                                        <small class="text-muted">Size:</small><br>
+                                        <strong>${item.size}</strong>
+                                    </div>
+                                    ` : ''}
+                                </div>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-6">
+                                        <small class="text-muted">Available:</small><br>
+                                        <strong class="${item.availableQuantity === 0 ? 'text-danger' : 'text-success'}">${item.availableQuantity}</strong>
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted">Total:</small><br>
+                                        <strong>${item.totalQuantity}</strong>
+                                    </div>
+                                </div>
+
+                                ${item.description ? `
+                                <div class="mb-3">
+                                    <small class="text-muted">Description:</small><br>
+                                    <small>${item.description}</small>
+                                </div>
+                                ` : ''}
+                                
+                                <div class="text-center">
+                                    ${isAvailable ? 
+                                        '<span class="badge bg-success">Available for Request</span>' : 
+                                        '<span class="badge bg-danger">Currently Unavailable</span>'
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = `<div class="row">${itemsHtml}</div>`;
+        }
+
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('typeFilter').value = '';
+            document.getElementById('statusFilter').value = '';
+            document.getElementById('sortBy').value = 'name';
+            filterInventory();
+        }
+
+        function clearCadetFilters() {
+            document.getElementById('cadetSearch').value = '';
+            document.getElementById('cadetTypeFilter').value = '';
+            document.getElementById('cadetAvailabilityFilter').value = '';
+            filterCadetInventory();
+        }
+
+        function refreshInventory() {
+            showAlert('Refreshing inventory...', 'info');
+            loadInventory();
+        }
+
+        function exportInventory() {
+            try {
+                const csvContent = generateCSV(currentInventory);
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `squadron_121_inventory_${new Date().toISOString().split('T')[0]}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                showAlert('Inventory exported successfully!', 'success');
+            } catch (error) {
+                console.error('Error exporting inventory:', error);
+                showAlert('Error exporting inventory: ' + error.message, 'danger');
+            }
+        }
+
+        function generateCSV(items) {
+            const headers = ['Name', 'Type', 'Size', 'Total Quantity', 'Available', 'Checked Out', 'Low Warning', 'Description', 'Created Date'];
+            const csvRows = [headers.join(',')];
+
+            items.forEach(item => {
+                const row = [
+                    `"${item.name || ''}"`,
+                    `"${item.type || ''}"`,
+                    `"${item.size || ''}"`,
+                    item.totalQuantity || 0,
+                    item.availableQuantity || 0,
+                    item.checkedOutQuantity || 0,
+                    item.lowWarning || '',
+                    `"${item.description || ''}"`,
+                    item.createdAt ? new Date(item.createdAt).toLocaleDateString() : ''
+                ];
+                csvRows.push(row.join(','));
+            });
+
+            return csvRows.join('\n');
+        }
+
+        function setupAutocomplete() {
+            const itemNameInput = document.getElementById('itemName');
+            const dropdown = document.getElementById('nameDropdown');
+
+            itemNameInput.addEventListener('input', function() {
+                const value = this.value.toLowerCase();
+                if (value.length < 2) {
+                    dropdown.style.display = 'none';
+                    return;
+                }
+
+                const matches = commonItems.filter(item => 
+                    item.toLowerCase().includes(value)
+                ).slice(0, 5);
+
+                if (matches.length > 0) {
+                    dropdown.innerHTML = matches.map(item => 
+                        `<button type="button" class="dropdown-item" onclick="selectItem('${item}')">${item}</button>`
+                    ).join('');
+                    dropdown.style.display = 'block';
+                } else {
+                    dropdown.style.display = 'none';
+                }
+            });
+
+            // Hide dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!itemNameInput.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.style.display = 'none';
+                }
+            });
+        }
+
+        function selectItem(itemName) {
+            document.getElementById('itemName').value = itemName;
+            document.getElementById('nameDropdown').style.display = 'none';
+        }
+
+        function showAlert(message, type = 'info') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertId = 'alert-' + Date.now();
+            
+            const alertHtml = `
+                <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+            
+            alertContainer.insertAdjacentHTML('beforeend', alertHtml);
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                const alertElement = document.getElementById(alertId);
+                if (alertElement) {
+                    const alert = bootstrap.Alert.getOrCreateInstance(alertElement);
+                    alert.close();
+                }
+            }, 5000);
+        }
     </script>
 </body>
 </html>
