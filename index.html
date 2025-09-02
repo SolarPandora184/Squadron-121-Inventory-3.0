@@ -841,34 +841,13 @@
                     type: document.getElementById('itemType').value,
                     size: document.getElementById('size').value.trim() || null,
                     totalQuantity: parseInt(document.getElementById('totalQuantity').value),
-                    availableQuantity: 0,
-                    checkedOutQuantity: 0,
                     lowWarning: parseInt(document.getElementById('lowWarning').value) || null,
                     status: document.getElementById('itemStatus').value,
                     assignedTo: document.getElementById('assignedTo').value.trim() || null,
                     assignedCapId: document.getElementById('assignedCapId').value.trim() || null,
                     description: document.getElementById('itemDescription').value.trim() || null,
-                    checkoutHistory: [],
-                    createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString()
                 };
-
-                // Calculate quantities based on status
-                if (itemData.status === 'In Inventory') {
-                    itemData.availableQuantity = itemData.totalQuantity;
-                } else if (itemData.status === 'Assigned' && itemData.assignedTo && itemData.assignedCapId) {
-                    itemData.availableQuantity = 0;
-                    itemData.checkedOutQuantity = itemData.totalQuantity;
-                    
-                    // Add to checkout history
-                    itemData.checkoutHistory = [{
-                        cadetName: itemData.assignedTo,
-                        cadetCapId: itemData.assignedCapId,
-                        quantity: itemData.totalQuantity,
-                        checkoutDate: new Date().toISOString(),
-                        notes: 'Initial assignment'
-                    }];
-                }
 
                 // Validation
                 if (!itemData.name || !itemData.type || !itemData.status) {
@@ -881,21 +860,74 @@
                     return;
                 }
 
-                // Save to Firebase
-                const itemsRef = window.firebaseRef(window.firebaseDatabase, 'inventory');
-                const newItemRef = window.firebasePush(itemsRef);
-                itemData.id = newItemRef.key;
+                if (window.isEditingItem && window.editingItemId) {
+                    // Update existing item
+                    const existingItem = currentInventory.find(item => item.id === window.editingItemId);
+                    if (existingItem) {
+                        // Preserve quantities and checkout history when editing
+                        itemData.availableQuantity = existingItem.availableQuantity;
+                        itemData.checkedOutQuantity = existingItem.checkedOutQuantity;
+                        itemData.checkoutHistory = existingItem.checkoutHistory || [];
+                        itemData.createdAt = existingItem.createdAt;
+                        
+                        // Recalculate quantities if total quantity changed
+                        const quantityDifference = itemData.totalQuantity - existingItem.totalQuantity;
+                        if (quantityDifference !== 0) {
+                            itemData.availableQuantity = Math.max(0, existingItem.availableQuantity + quantityDifference);
+                        }
+                    }
+
+                    const itemRef = window.firebaseRef(window.firebaseDatabase, `inventory/${window.editingItemId}`);
+                    await window.firebaseUpdate(itemRef, itemData);
+                    
+                    showAlert(`Item "${itemData.name}" updated successfully!`, 'success');
+                    
+                    // Reset editing state
+                    window.isEditingItem = false;
+                    window.editingItemId = null;
+                    document.querySelector('#addInventorySection h3').innerHTML = '<i class="fas fa-plus me-2"></i>Add New Inventory Item';
+                    document.querySelector('#addItemForm button[type="submit"]').innerHTML = '<i class="fas fa-plus me-2"></i>Add Item';
+                    
+                } else {
+                    // Add new item
+                    itemData.availableQuantity = 0;
+                    itemData.checkedOutQuantity = 0;
+                    itemData.checkoutHistory = [];
+                    itemData.createdAt = new Date().toISOString();
+
+                    // Calculate quantities based on status
+                    if (itemData.status === 'In Inventory') {
+                        itemData.availableQuantity = itemData.totalQuantity;
+                    } else if (itemData.status === 'Assigned' && itemData.assignedTo && itemData.assignedCapId) {
+                        itemData.availableQuantity = 0;
+                        itemData.checkedOutQuantity = itemData.totalQuantity;
+                        
+                        // Add to checkout history
+                        itemData.checkoutHistory = [{
+                            cadetName: itemData.assignedTo,
+                            cadetCapId: itemData.assignedCapId,
+                            quantity: itemData.totalQuantity,
+                            checkoutDate: new Date().toISOString(),
+                            notes: 'Initial assignment'
+                        }];
+                    }
+
+                    const itemsRef = window.firebaseRef(window.firebaseDatabase, 'inventory');
+                    const newItemRef = window.firebasePush(itemsRef);
+                    itemData.id = newItemRef.key;
+                    
+                    await window.firebaseSet(newItemRef, itemData);
+                    
+                    showAlert(`Item "${itemData.name}" added successfully!`, 'success');
+                }
                 
-                await window.firebaseSet(newItemRef, itemData);
-                
-                showAlert(`Item "${itemData.name}" added successfully!`, 'success');
                 document.getElementById('addItemForm').reset();
                 document.getElementById('totalQuantity').value = '1'; // Reset to default
                 loadInventory();
                 
             } catch (error) {
-                console.error('Error adding item:', error);
-                showAlert('Error adding item: ' + error.message, 'danger');
+                console.error('Error saving item:', error);
+                showAlert('Error saving item: ' + error.message, 'danger');
             }
         }
 
@@ -1251,6 +1283,42 @@
             modal.show();
         }
 
+        // Edit item function - called by the edit button
+        function editItem() {
+            if (!currentItemForModal) return;
+            
+            // Close the details modal
+            const detailsModal = bootstrap.Modal.getInstance(document.getElementById('itemDetailsModal'));
+            detailsModal.hide();
+            
+            // Fill the edit form with current item data
+            document.getElementById('itemName').value = currentItemForModal.name || '';
+            document.getElementById('itemType').value = currentItemForModal.type || '';
+            document.getElementById('size').value = currentItemForModal.size || '';
+            document.getElementById('totalQuantity').value = currentItemForModal.totalQuantity || 1;
+            document.getElementById('lowWarning').value = currentItemForModal.lowWarning || '';
+            document.getElementById('itemStatus').value = currentItemForModal.status || 'In Inventory';
+            document.getElementById('assignedTo').value = currentItemForModal.assignedTo || '';
+            document.getElementById('assignedCapId').value = currentItemForModal.assignedCapId || '';
+            document.getElementById('itemDescription').value = currentItemForModal.description || '';
+            
+            // Update the form title and button text to indicate editing
+            document.querySelector('#addInventorySection h3').innerHTML = '<i class="fas fa-edit me-2"></i>Edit Inventory Item';
+            document.querySelector('#addItemForm button[type="submit"]').innerHTML = '<i class="fas fa-save me-2"></i>Update Item';
+            
+            // Set a flag to track that we're editing
+            window.isEditingItem = true;
+            window.editingItemId = currentItemForModal.id;
+            
+            // Show the admin portal if it's not already visible
+            if (currentView !== 'admin') {
+                showAdminPortal();
+            }
+            
+            // Scroll to the form
+            document.getElementById('addInventorySection').scrollIntoView({ behavior: 'smooth' });
+        }
+
         function loadCadetInventory() {
             // For cadet view, load only available items
             loadInventory().then(() => {
@@ -1342,7 +1410,12 @@
                                 
                                 <div class="text-center">
                                     ${isAvailable ? 
-                                        '<span class="badge bg-success">Available for Request</span>' : 
+                                        `<span class="badge bg-success mb-2">Available for Request</span>
+                                        <div>
+                                            <button class="btn btn-primary btn-sm" onclick="openCadetCheckout('${item.id}')">
+                                                <i class="fas fa-hand-paper me-1"></i>Request Item
+                                            </button>
+                                        </div>` : 
                                         '<span class="badge bg-danger">Currently Unavailable</span>'
                                     }
                                 </div>
@@ -1353,6 +1426,32 @@
             }).join('');
 
             container.innerHTML = `<div class="row">${itemsHtml}</div>`;
+        }
+
+        // Cadet checkout functions
+        function openCadetCheckout(itemId) {
+            const item = currentInventory.find(i => i.id === itemId);
+            if (!item || item.availableQuantity === 0) {
+                showAlert('This item is not available for checkout', 'warning');
+                return;
+            }
+            
+            currentItemForModal = item;
+            
+            // Set maximum quantity to available quantity
+            document.getElementById('checkoutQuantity').max = item.availableQuantity;
+            document.getElementById('checkoutQuantity').value = '1';
+            
+            // Update modal title for cadet request
+            document.getElementById('checkoutModalLabel').innerHTML = `
+                <i class="fas fa-hand-paper me-2"></i>Request: ${item.name}
+            `;
+            
+            // Clear any previous errors
+            document.getElementById('checkoutError').style.display = 'none';
+            
+            const modal = new bootstrap.Modal(document.getElementById('checkoutModal'));
+            modal.show();
         }
 
         function clearFilters() {
