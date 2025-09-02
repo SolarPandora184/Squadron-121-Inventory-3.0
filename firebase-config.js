@@ -5,14 +5,14 @@ import { getDatabase, ref, set, get, child, push, update, remove } from "firebas
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyDCo2OweTTS-g60MVwL9N-VUCyCyctZavc",
-  authDomain: "squadron-72.firebaseapp.com",
-  databaseURL: "https://squadron-72-default-rtdb.firebaseio.com",
-  projectId: "squadron-72",
-  storageBucket: "squadron-72.firebasestorage.app",
-  messagingSenderId: "572966132981",
-  appId: "1:572966132981:web:44053bbe8c60378647f9bc",
-  measurementId: "G-0D77CRVR83"
+  apiKey: "AIzaSyDJGwTr0T82Derb1aO4X85A0RvgXuU_VkM",
+  authDomain: "squadron-121.firebaseapp.com",
+  databaseURL: "https://squadron-121-default-rtdb.firebaseio.com",
+  projectId: "squadron-121",
+  storageBucket: "squadron-121.firebasestorage.app",
+  messagingSenderId: "748213310495",
+  appId: "1:748213310495:web:af60990676313a9218b12a",
+  measurementId: "G-GSNNEV7PJ4"
 };
 
 // Initialize Firebase
