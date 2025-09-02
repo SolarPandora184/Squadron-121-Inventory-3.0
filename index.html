@@ -810,28 +810,99 @@
             loadCadetInventory();
         }
 
-        // Firebase integration functions
+        // Firebase integration functions with improved error handling
         async function loadInventory() {
             try {
+                // Check if Firebase is available
+                if (!window.firebaseDatabase || !window.firebaseRef || !window.firebaseGet) {
+                    console.warn('Firebase not available, using demo data');
+                    loadDemoData();
+                    return;
+                }
+
+                console.log('Loading inventory from Firebase...');
                 const dbRef = window.firebaseRef(window.firebaseDatabase);
                 const snapshot = await window.firebaseGet(window.firebaseChild(dbRef, 'inventory'));
                 
                 if (snapshot.exists()) {
                     const data = snapshot.val();
                     currentInventory = Object.values(data);
+                    console.log('Loaded inventory from Firebase:', currentInventory.length, 'items');
                 } else {
+                    console.log('No inventory data found in Firebase, starting with empty inventory');
                     currentInventory = [];
                 }
                 
-                console.log('Loaded inventory:', currentInventory.length, 'items');
                 filterInventory();
                 
             } catch (error) {
-                console.error('Error loading inventory:', error);
-                showAlert('Error loading inventory: ' + error.message, 'danger');
-                currentInventory = [];
-                displayInventory([]);
+                console.error('Error loading inventory from Firebase:', error);
+                console.log('Falling back to demo data due to Firebase error');
+                
+                // Fallback to demo data if Firebase fails
+                loadDemoData();
+                
+                // Show user-friendly message
+                showAlert('Connected to demo mode. Add items to get started!', 'info');
             }
+        }
+
+        function loadDemoData() {
+            // Try to load from local storage first
+            const savedInventory = localStorage.getItem('squadron121_inventory');
+            if (savedInventory) {
+                try {
+                    currentInventory = JSON.parse(savedInventory);
+                    console.log('Loaded inventory from local storage:', currentInventory.length, 'items');
+                    filterInventory();
+                    return;
+                } catch (e) {
+                    console.error('Error parsing saved inventory:', e);
+                }
+            }
+
+            // Load demo data if no saved data exists
+            currentInventory = [
+                {
+                    id: 'demo-1',
+                    name: 'Battle Dress Uniform (BDU) Shirt',
+                    type: 'Uniform',
+                    size: 'Medium',
+                    totalQuantity: 10,
+                    availableQuantity: 7,
+                    checkedOutQuantity: 3,
+                    lowWarning: 5,
+                    description: 'Standard BDU shirt for training activities',
+                    checkoutHistory: [
+                        {
+                            cadetName: 'John Smith',
+                            cadetCapId: '123456',
+                            quantity: 2,
+                            checkoutDate: new Date(Date.now() - 86400000).toISOString(),
+                            notes: 'Field training exercise'
+                        }
+                    ],
+                    createdAt: new Date(Date.now() - 604800000).toISOString(),
+                    updatedAt: new Date().toISOString()
+                },
+                {
+                    id: 'demo-2',
+                    name: 'CAP Squadron Patch',
+                    type: 'Insignia',
+                    size: null,
+                    totalQuantity: 25,
+                    availableQuantity: 25,
+                    checkedOutQuantity: 0,
+                    lowWarning: 10,
+                    description: 'Official Squadron 121 patch',
+                    checkoutHistory: [],
+                    createdAt: new Date(Date.now() - 1209600000).toISOString(),
+                    updatedAt: new Date().toISOString()
+                }
+            ];
+            
+            console.log('Loaded demo inventory:', currentInventory.length, 'items');
+            filterInventory();
         }
 
         async function addItem() {
@@ -881,12 +952,29 @@
                     return;
                 }
 
-                // Save to Firebase
-                const itemsRef = window.firebaseRef(window.firebaseDatabase, 'inventory');
-                const newItemRef = window.firebasePush(itemsRef);
-                itemData.id = newItemRef.key;
-                
-                await window.firebaseSet(newItemRef, itemData);
+                // Try to save to Firebase, fallback to local storage
+                try {
+                    if (window.firebaseDatabase && window.firebaseRef && window.firebasePush && window.firebaseSet) {
+                        const itemsRef = window.firebaseRef(window.firebaseDatabase, 'inventory');
+                        const newItemRef = window.firebasePush(itemsRef);
+                        itemData.id = newItemRef.key;
+                        
+                        await window.firebaseSet(newItemRef, itemData);
+                        console.log('Item saved to Firebase successfully');
+                    } else {
+                        // Fallback to local storage if Firebase isn't available
+                        itemData.id = 'local-' + Date.now();
+                        currentInventory.push(itemData);
+                        localStorage.setItem('squadron121_inventory', JSON.stringify(currentInventory));
+                        console.log('Item saved to local storage (Firebase not available)');
+                    }
+                } catch (saveError) {
+                    console.error('Error saving to Firebase, using local storage:', saveError);
+                    // Fallback to local storage
+                    itemData.id = 'local-' + Date.now();
+                    currentInventory.push(itemData);
+                    localStorage.setItem('squadron121_inventory', JSON.stringify(currentInventory));
+                }
                 
                 showAlert(`Item "${itemData.name}" added successfully!`, 'success');
                 document.getElementById('addItemForm').reset();
@@ -942,9 +1030,30 @@
                 }
                 updatedItem.checkoutHistory.push(checkoutRecord);
 
-                // Update in Firebase
-                const itemRef = window.firebaseRef(window.firebaseDatabase, `inventory/${currentItemForModal.id}`);
-                await window.firebaseUpdate(itemRef, updatedItem);
+                // Try to update in Firebase, fallback to local storage
+                try {
+                    if (window.firebaseDatabase && window.firebaseRef && window.firebaseUpdate) {
+                        const itemRef = window.firebaseRef(window.firebaseDatabase, `inventory/${currentItemForModal.id}`);
+                        await window.firebaseUpdate(itemRef, updatedItem);
+                        console.log('Checkout saved to Firebase');
+                    } else {
+                        // Update in current inventory and save to local storage
+                        const itemIndex = currentInventory.findIndex(item => item.id === currentItemForModal.id);
+                        if (itemIndex !== -1) {
+                            currentInventory[itemIndex] = updatedItem;
+                            localStorage.setItem('squadron121_inventory', JSON.stringify(currentInventory));
+                            console.log('Checkout saved to local storage');
+                        }
+                    }
+                } catch (saveError) {
+                    console.error('Error saving to Firebase, using local storage:', saveError);
+                    // Fallback to local storage
+                    const itemIndex = currentInventory.findIndex(item => item.id === currentItemForModal.id);
+                    if (itemIndex !== -1) {
+                        currentInventory[itemIndex] = updatedItem;
+                        localStorage.setItem('squadron121_inventory', JSON.stringify(currentInventory));
+                    }
+                }
 
                 showAlert(`Successfully checked out ${quantity} ${currentItemForModal.name} to ${cadetName}`, 'success');
                 
